@@ -183,7 +183,7 @@ export default function Home() {
             <div><span className="kicker">Analysis complete</span><h2>Your resume report</h2><p>Tailored for {role}</p></div>
             <button className="ghost" onClick={reset}>Analyze another resume</button>
           </div>
-          {result.demo && <div className="demo-banner">Demo analysis — add an OpenAI API key to enable live resume reading.</div>}
+          {result.demo && <div className="demo-banner">Demo analysis — add a Gemini API key to enable live resume reading.</div>}
 
           <div className="result-grid">
             <article className="score-card">

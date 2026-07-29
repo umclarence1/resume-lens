@@ -19,7 +19,7 @@ suggestions, and a prioritized improvement plan.
 - Grammar and clarity suggestions
 - Prioritized improvement recommendations
 - Recruiter-style resume summary
-- Demo mode when no OpenAI API key is configured
+- Demo mode when no Gemini API key is configured
 - Responsive interface and social sharing card
 
 ## How scoring works
@@ -41,7 +41,7 @@ invent candidate experience or qualifications.
 - React 19 and TypeScript
 - Next.js-compatible app routing through vinext
 - Cloudflare Workers-compatible server runtime
-- OpenAI Responses API with strict structured output
+- Gemini Developer API with structured JSON output
 - Native PDF file input
 - CSS-based responsive design
 
@@ -50,7 +50,7 @@ invent candidate experience or qualifications.
 Requirements:
 
 - Node.js 22.13 or newer
-- An OpenAI API key for live analysis
+- A Gemini API key for live analysis
 
 ```bash
 npm install
@@ -61,8 +61,8 @@ npm run dev
 Add your key to `.env.local`:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-5.6-sol
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Without a key, the app intentionally returns a realistic demo analysis so the
@@ -79,7 +79,6 @@ npm run lint
 
 - Uploaded resumes are processed per request and are not intentionally stored
   by the application.
-- The live OpenAI request uses `store: false`.
 - API keys remain server-side.
 - Users should remove unnecessary sensitive information before testing.
 

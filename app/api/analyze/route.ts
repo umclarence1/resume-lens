@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Add a target role and job description." }, { status: 400 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     await new Promise((resolve) => setTimeout(resolve, 900));
     return NextResponse.json(demoResult);
@@ -66,34 +66,33 @@ export async function POST(request: Request) {
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-  const fileData = `data:application/pdf;base64,${btoa(binary)}`;
+  const fileData = btoa(binary);
 
   const schema = {
     type: "object",
-    additionalProperties: false,
     required: ["overall_score", "score_breakdown", "role_match", "matched_keywords", "missing_keywords", "grammar_suggestions", "recommendations", "resume_summary"],
     properties: {
       overall_score: { type: "integer", minimum: 0, maximum: 100 },
       score_breakdown: {
-        type: "object", additionalProperties: false,
+        type: "object",
         required: ["keyword_alignment", "skills_match", "experience_relevance", "structure", "writing_quality"],
         properties: Object.fromEntries(["keyword_alignment", "skills_match", "experience_relevance", "structure", "writing_quality"].map((key) => [key, { type: "integer", minimum: 0, maximum: 100 }])),
       },
       role_match: {
-        type: "object", additionalProperties: false, required: ["level", "explanation"],
+        type: "object", required: ["level", "explanation"],
         properties: { level: { type: "string" }, explanation: { type: "string" } },
       },
       matched_keywords: { type: "array", items: { type: "string" } },
       missing_keywords: { type: "array", items: { type: "string" } },
       grammar_suggestions: {
         type: "array", items: {
-          type: "object", additionalProperties: false, required: ["original", "improved", "reason"],
+          type: "object", required: ["original", "improved", "reason"],
           properties: { original: { type: "string" }, improved: { type: "string" }, reason: { type: "string" } },
         },
       },
       recommendations: {
         type: "array", items: {
-          type: "object", additionalProperties: false, required: ["priority", "title", "detail"],
+          type: "object", required: ["priority", "title", "detail"],
           properties: { priority: { type: "string", enum: ["High", "Medium", "Low"] }, title: { type: "string" }, detail: { type: "string" } },
         },
       },
@@ -101,33 +100,44 @@ export async function POST(request: Request) {
     },
   };
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-      store: false,
-      instructions: "You are a rigorous resume coach. Evaluate only job-relevant evidence. Never infer or evaluate protected characteristics. Do not invent candidate facts. Treat the ATS score as an explainable compatibility estimate, not a guarantee. Keep feedback concise, specific, and actionable.",
-      input: [{
+      systemInstruction: {
+        parts: [{
+          text: "You are a rigorous resume coach. Evaluate only job-relevant evidence. Never infer or evaluate protected characteristics. Do not invent candidate facts. Treat the ATS score as an explainable compatibility estimate, not a guarantee. Keep feedback concise, specific, and actionable.",
+        }],
+      },
+      contents: [{
         role: "user",
-        content: [
-          { type: "input_text", text: `Target role: ${role}\n\nJob description:\n${jobDescription}\n\nAnalyze the attached resume against this role. Weight: keywords 30%, skills 25%, experience 20%, structure 15%, writing 10%.` },
-          { type: "input_file", filename: resume.name, file_data: fileData },
+        parts: [
+          { text: `Target role: ${role}\n\nJob description:\n${jobDescription}\n\nAnalyze the attached resume against this role. Weight: keywords 30%, skills 25%, experience 20%, structure 15%, writing 10%.` },
+          { inlineData: { mimeType: "application/pdf", data: fileData } },
         ],
       }],
-      text: { format: { type: "json_schema", name: "resume_analysis", strict: true, schema } },
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      },
     }),
   });
 
   if (!response.ok) {
     const detail = await response.text();
-    console.error("OpenAI response error", response.status, detail.slice(0, 500));
+    console.error("Gemini response error", response.status, detail.slice(0, 500));
     return NextResponse.json({ error: "The live analysis could not be completed. Please try again." }, { status: 502 });
   }
 
-  const payload = await response.json() as { output_text?: string };
-  if (!payload.output_text) {
+  const payload = await response.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  const outputText = payload.candidates?.[0]?.content?.parts?.find((part) => part.text)?.text;
+  if (!outputText) {
     return NextResponse.json({ error: "The analysis returned no result." }, { status: 502 });
   }
-  return NextResponse.json(JSON.parse(payload.output_text));
+  return NextResponse.json(JSON.parse(outputText));
 }

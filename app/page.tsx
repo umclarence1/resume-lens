@@ -18,6 +18,10 @@ type Result = {
   role_suggestions: RoleSuggestion[];
   job_description_warning?: string | null;
   privacy?: string;
+  validation?: { evidence_checked: boolean; rejected_evidence_count: number; rejected_rewrite_count: number };
+  security?: { prompt_injection_detected: boolean };
+  document?: { pages: number; readable_characters: number };
+  model_version?: string;
   demo?: boolean;
 };
 
@@ -50,9 +54,11 @@ export default function Home() {
   const [result, setResult] = useState<Result | null>(null);
   const [accepted, setAccepted] = useState<Set<number>>(new Set());
   const [summaryAccepted, setSummaryAccepted] = useState(true);
+  const [consent, setConsent] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   const jobWarning = jobDescription.length > 0 && jobDescription.length < 150;
-  const canAnalyze = !!file && ((!role && !jobDescription) || (!!role && jobDescription.length >= 40));
+  const canAnalyze = !!file && consent && ((!role && !jobDescription) || (!!role && jobDescription.length >= 40));
   const acceptedRewrites = useMemo(
     () => result?.grammar_suggestions.filter((_, index) => accepted.has(index)) ?? [],
     [accepted, result],
@@ -77,6 +83,7 @@ export default function Home() {
     body.append("resume", file);
     body.append("role", role);
     body.append("jobDescription", jobDescription);
+    body.append("consent", String(consent));
     try {
       const response = await fetch("/api/analyze", { method: "POST", body });
       const data = await response.json();
@@ -90,6 +97,21 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function sendFeedback(helpful: boolean) {
+    setFeedback("Sending…");
+    const response = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        helpful,
+        score: result?.overall_score,
+        role: role || result?.role_suggestions[0]?.role,
+        model: result?.model_version,
+      }),
+    });
+    setFeedback(response.ok ? "Thank you—your feedback was recorded." : "Feedback could not be sent.");
   }
 
   function selectSuggestedRole(suggestion: RoleSuggestion) {
@@ -184,6 +206,7 @@ export default function Home() {
             <label className="job-field">Job description <span className="optional">optional</span><textarea placeholder="Paste a full job description, or leave blank for role discovery..." value={jobDescription} onChange={(event) => setJobDescription(event.target.value)} /><button type="button" className="sample" onClick={() => { setRole("Junior Software Engineer"); setJobDescription(sampleJob); }}>Use sample job</button></label>
           </div>
           {jobWarning && <p className="inline-warning">A longer job description (150+ characters) gives more reliable keyword comparisons.</p>}
+          <label className="consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>I am 18 or older and consent to this resume being processed by Resume Lens and its configured AI provider. I have read the <a href="/privacy" target="_blank">privacy notice</a>.</span></label>
           {error && <p className="error">{error}</p>}
           <button className="analyze" disabled={!canAnalyze || loading} onClick={analyze}>{loading ? <><i className="spinner" /> Analyzing evidence…</> : <>Analyze my resume <span>→</span></>}</button>
           <p className="fine-print">Compatibility guidance—not a hiring prediction or guarantee.</p>
@@ -196,6 +219,7 @@ export default function Home() {
         <div className="results-head"><div><span className="kicker">Your evidence-backed report</span><h2>{role || result.role_suggestions[0]?.role}</h2><p>{result.role_match.level}</p></div><button className="ghost" onClick={() => setResult(null)}>Analyze another resume</button></div>
         {result.demo && <div className="demo-banner">Demo mode is active because no Gemini key is configured in this environment.</div>}
         {result.job_description_warning && <div className="demo-banner">{result.job_description_warning}</div>}
+        {result.security?.prompt_injection_detected && <div className="security-banner">Suspicious instructions were detected inside the PDF and treated as untrusted text.</div>}
 
         <div className="result-grid">
           <article className="score-card"><div className={`score-ring ${result.overall_score >= 75 ? "great" : result.overall_score < 55 ? "needs-work" : ""}`} style={{ "--score": result.overall_score } as React.CSSProperties}><div><strong>{result.overall_score}</strong><span>out of 100</span></div></div><div><span className="kicker">Weighted compatibility</span><h3>{result.role_match.level}</h3><p>{result.role_match.explanation}</p></div></article>
@@ -218,6 +242,8 @@ export default function Home() {
           <article className="summary-compare"><div><span>Original summary</span><p>{result.resume_summary}</p></div><div><span>Suggested summary</span><p>{result.improved_summary}</p><button className={summaryAccepted ? "accepted" : ""} onClick={() => setSummaryAccepted(!summaryAccepted)}>{summaryAccepted ? "✓ Accepted" : "Accept suggestion"}</button></div></article>
           <div className="grammar">{result.grammar_suggestions.map((item, index) => <article key={`${item.original}-${index}`}><div><span>Original</span><p>{item.original}</p></div><strong>→</strong><div><span>Grounded rewrite</span><p>{item.improved}</p><small>{item.reason}</small><button className={accepted.has(index) ? "accepted" : ""} onClick={() => setAccepted((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })}>{accepted.has(index) ? "✓ Accepted" : "Accept rewrite"}</button></div></article>)}</div>
         </div>
+
+        <div className="feedback-card"><div><span className="kicker">Help us measure quality</span><h3>Was this report accurate and useful?</h3><p>Feedback contains the score and selected role—not your resume text.</p></div><div><button onClick={() => sendFeedback(true)}>Yes, helpful</button><button onClick={() => sendFeedback(false)}>Needs improvement</button><small>{feedback}</small></div></div>
       </section>}
 
       <footer className="shell"><span>Resume Lens</span><p>Processed temporarily · No permanent resume storage · AI guidance has limitations</p><div><a href="/privacy">Privacy</a><a href="/limitations">Limitations</a></div></footer>

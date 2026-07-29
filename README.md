@@ -21,6 +21,13 @@ suggestions, and a prioritized improvement plan.
 - Recruiter-style resume summary
 - Demo mode when no Gemini API key is configured
 - Responsive interface and social sharing card
+- Deterministic PDF text extraction and evidence verification
+- Prompt-injection detection and untrusted-document isolation
+- Provider timeout and retry handling
+- Optional globally shared Upstash rate limiting
+- Explicit adult-user privacy consent
+- Health and privacy-preserving feedback endpoints
+- DOCX and PDF improvement exports
 
 ## How scoring works
 
@@ -82,22 +89,35 @@ npm run lint
 - API keys remain server-side.
 - Users should remove unnecessary sensitive information before testing.
 
+## Production configuration
+
+For durable worldwide rate limiting, configure `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN`. Without them, the application falls back to a
+per-instance limiter suitable only for development. Configure
+`FEEDBACK_WEBHOOK_URL` to collect anonymous usefulness signals; resume text is
+never included.
+
+Use `/api/health` for uptime checks and deployment diagnostics.
+
+See [the production-readiness runbook](docs/PRODUCTION_READINESS.md) for release
+gates and the external legal, regional, and operational work required before a
+broad launch.
+
 ## Current limitations
 
-- The first release relies on the model's native PDF understanding rather than
-  a dedicated local OCR pipeline.
-- It does not yet export an improved PDF or DOCX resume.
-- It does not retain analysis history or user accounts.
-- Scoring quality still needs evaluation against a curated set of resumes and
-  job descriptions.
+- Scanned PDFs require a future OCR worker; unreadable scans are rejected.
+- The 20 checked-in benchmark cases are a starter taxonomy, not a statistically
+  validated accuracy claim.
+- Durable global rate limiting requires external Upstash credentials.
+- International launch still requires regional eligibility, privacy review,
+  provider agreements, and native-language evaluation.
 
 ## Roadmap
 
-- Add deterministic PDF text extraction and OCR fallback
-- Add score-consistency and prompt-regression evaluations
-- Generate an editable improved-resume draft without inventing facts
-- Export approved revisions to DOCX and PDF
-- Add report download and side-by-side before/after comparisons
+- Add isolated OCR processing for scanned resumes
+- Expand the benchmark to 100+ consented or synthetic resumes
+- Add model-version score-drift reporting
+- Validate additional languages one at a time with native reviewers
 
 ## Demo Wednesday
 

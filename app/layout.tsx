@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
+    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
     openGraph: { title, description, images: [{ url: `${origin}/og.png`, width: 1734, height: 907 }] },
     twitter: { card: "summary_large_image", title, description, images: [`${origin}/og.png`] },
   };

@@ -1,98 +1,107 @@
-# vinext-starter
+# Resume Lens
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+An AI-assisted resume analyzer built for the first edition of **Demo Wednesday**.
+Resume Lens compares a PDF resume with a target role and job description, then
+returns an estimated ATS score, keyword gaps, role-fit feedback, writing
+suggestions, and a prioritized improvement plan.
 
-## Prerequisites
+> The score is an explainable compatibility estimate. It is not a score from a
+> recruiter's actual applicant tracking system and does not guarantee an
+> interview.
 
-- Node.js `>=22.13.0`
+## Features
 
-## Quick Start
+- PDF resume upload with type and size validation
+- Target-role and job-description comparison
+- Weighted ATS compatibility score
+- Matched and missing keywords
+- Role-fit explanation
+- Grammar and clarity suggestions
+- Prioritized improvement recommendations
+- Recruiter-style resume summary
+- Demo mode when no OpenAI API key is configured
+- Responsive interface and social sharing card
+
+## How scoring works
+
+| Category | Weight |
+| --- | ---: |
+| Keyword alignment | 30% |
+| Skills match | 25% |
+| Experience relevance | 20% |
+| Structure and completeness | 15% |
+| Writing quality | 10% |
+
+The score is designed to be transparent and useful for revision. Resume Lens
+does not evaluate protected characteristics and instructs the model not to
+invent candidate experience or qualifications.
+
+## Tech stack
+
+- React 19 and TypeScript
+- Next.js-compatible app routing through vinext
+- Cloudflare Workers-compatible server runtime
+- OpenAI Responses API with strict structured output
+- Native PDF file input
+- CSS-based responsive design
+
+## Run locally
+
+Requirements:
+
+- Node.js 22.13 or newer
+- An OpenAI API key for live analysis
 
 ```bash
 npm install
+copy .env.example .env.local
 npm run dev
+```
+
+Add your key to `.env.local`:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-5.6-sol
+```
+
+Without a key, the app intentionally returns a realistic demo analysis so the
+complete interface can still be explored.
+
+## Validate
+
+```bash
 npm run build
+npm run lint
 ```
 
-This starter does not use `wrangler.jsonc`.
+## Privacy
 
-## Included Shape
+- Uploaded resumes are processed per request and are not intentionally stored
+  by the application.
+- The live OpenAI request uses `store: false`.
+- API keys remain server-side.
+- Users should remove unnecessary sensitive information before testing.
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+## Current limitations
 
-## Workspace Auth Headers
+- The first release relies on the model's native PDF understanding rather than
+  a dedicated local OCR pipeline.
+- It does not yet export an improved PDF or DOCX resume.
+- It does not retain analysis history or user accounts.
+- Scoring quality still needs evaluation against a curated set of resumes and
+  job descriptions.
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+## Roadmap
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+- Add deterministic PDF text extraction and OCR fallback
+- Add score-consistency and prompt-regression evaluations
+- Generate an editable improved-resume draft without inventing facts
+- Export approved revisions to DOCX and PDF
+- Add report download and side-by-side before/after comparisons
 
-Treat the full name as optional and fall back to email when it is absent:
+## Demo Wednesday
 
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+This project demonstrates document input, structured AI output, explainable
+scoring, privacy-aware product design, and a practical user experience around a
+real graduate job-search problem.

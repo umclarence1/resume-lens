@@ -1,0 +1,22 @@
+[
+  {"id":"frontend-strong","resume_profile":"React, TypeScript, accessibility, testing","target_role":"Frontend Developer","expected_band":"strong","required_evidence":["React","TypeScript"]},
+  {"id":"frontend-weak","resume_profile":"Accounting and bookkeeping","target_role":"Frontend Developer","expected_band":"weak","required_evidence":[]},
+  {"id":"backend-strong","resume_profile":"Python, FastAPI, PostgreSQL, Docker","target_role":"Backend Developer","expected_band":"strong","required_evidence":["Python","FastAPI"]},
+  {"id":"data-entry","resume_profile":"Excel, records, customer support","target_role":"Data Entry Clerk","expected_band":"strong","required_evidence":["Excel"]},
+  {"id":"data-science-gap","resume_profile":"Python basics and school statistics","target_role":"Data Scientist","expected_band":"developing","required_evidence":["Python"]},
+  {"id":"iot-strong","resume_profile":"Arduino, sensors, C++, solar monitoring","target_role":"Junior IoT Developer","expected_band":"strong","required_evidence":["C++","sensors"]},
+  {"id":"iot-inferred","resume_profile":"Built automated irrigation prototype","target_role":"Junior IoT Developer","expected_band":"developing","required_evidence":["automated irrigation"]},
+  {"id":"cybersecurity-gap","resume_profile":"Helpdesk and networking fundamentals","target_role":"Security Analyst","expected_band":"developing","required_evidence":["networking"]},
+  {"id":"ux-strong","resume_profile":"Figma, user research, prototypes, usability tests","target_role":"UX Designer","expected_band":"strong","required_evidence":["Figma"]},
+  {"id":"project-manager","resume_profile":"Led five-person school project and delivery plan","target_role":"Junior Project Coordinator","expected_band":"strong","required_evidence":["Led"]},
+  {"id":"electrical-tech","resume_profile":"Circuit design, solar installation, maintenance","target_role":"Electrical Technician","expected_band":"strong","required_evidence":["solar installation"]},
+  {"id":"qa-developing","resume_profile":"Manual testing and bug reports","target_role":"QA Engineer","expected_band":"developing","required_evidence":["Manual testing"]},
+  {"id":"mobile-strong","resume_profile":"Flutter, Dart, Firebase application","target_role":"Mobile Developer","expected_band":"strong","required_evidence":["Flutter"]},
+  {"id":"devops-weak","resume_profile":"HTML and CSS portfolio","target_role":"DevOps Engineer","expected_band":"weak","required_evidence":[]},
+  {"id":"support-strong","resume_profile":"Troubleshooting, ticketing, customer communication","target_role":"IT Support Technician","expected_band":"strong","required_evidence":["Troubleshooting"]},
+  {"id":"analyst-developing","resume_profile":"Excel dashboards and introductory SQL","target_role":"Data Analyst","expected_band":"developing","required_evidence":["Excel","SQL"]},
+  {"id":"research-assistant","resume_profile":"Literature reviews, surveys, technical reports","target_role":"Research Assistant","expected_band":"strong","required_evidence":["Literature reviews"]},
+  {"id":"marketing-mismatch","resume_profile":"C++, circuit prototyping, robotics","target_role":"Digital Marketing Specialist","expected_band":"weak","required_evidence":[]},
+  {"id":"role-discovery-engineer","resume_profile":"Python, sensors, renewable-energy projects","target_role":"","expected_band":"discovery","required_evidence":["Python","sensors"]},
+  {"id":"role-discovery-admin","resume_profile":"Scheduling, Excel, records, event coordination","target_role":"","expected_band":"discovery","required_evidence":["Excel"]}
+]

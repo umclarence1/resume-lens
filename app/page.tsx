@@ -177,7 +177,7 @@ export default function Home() {
     <main>
       <nav className="nav shell" aria-label="Primary navigation">
         <a className="brand" href="#"><span className="brand-mark">R</span><span>Resume Lens</span></a>
-        <div className="nav-links"><a href="/privacy">Privacy</a><a href="/limitations">AI limitations</a></div>
+        <div className="nav-links"><a href="/studio">Evidence Studio</a><a href="/privacy">Privacy</a><a href="/limitations">AI limitations</a></div>
         <span className="privacy"><i /> Files are processed temporarily</span>
       </nav>
 

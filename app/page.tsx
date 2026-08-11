@@ -176,17 +176,19 @@ export default function Home() {
   return (
     <main>
       <nav className="nav shell" aria-label="Primary navigation">
-        <a className="brand" href="#"><span className="brand-mark">R</span><span>Resume Lens</span></a>
-        <div className="nav-links"><a href="/studio">Evidence Studio</a><a href="/privacy">Privacy</a><a href="/limitations">AI limitations</a></div>
+        <a className="brand" href="#"><span className="brand-mark">R</span><span>Resume Lens</span><small>Evidence-first careers</small></a>
+        <div className="nav-links"><a className="nav-primary" href="/studio">Open Evidence Studio <span>↗</span></a><a href="/privacy">Privacy</a><a href="/limitations">Limitations</a></div>
         <span className="privacy"><i /> Files are processed temporarily</span>
       </nav>
 
       <section className="hero shell">
-        <div className="eyebrow"><span>Evidence-backed resume intelligence</span></div>
-        <h1>Turn your resume into<br /><em>an interview magnet.</em></h1>
-        <p className="hero-copy">Audit your fit, see the evidence behind every score, discover realistic roles, and export grounded improvements.</p>
+        <div className="eyebrow"><span>Evidence-backed career intelligence</span></div>
+        <h1>See what your resume<br /><em>can actually prove.</em></h1>
+        <p className="hero-copy">Measure job fit, trace every recommendation to evidence, and turn real experience into a resume you can defend.</p>
+        <div className="hero-signals" aria-label="Product strengths"><span><b>01</b> Transparent scoring</span><span><b>02</b> Grounded improvements</span><span><b>03</b> Private by design</span></div>
 
         <div className="workspace">
+          <div className="workspace-topbar"><div><span className="live-dot" />Resume analysis</div><small>About 60 seconds</small></div>
           <div className="step-head"><span className="step-number">1</span><div><h2>Upload your resume</h2><p>PDF only · Maximum 8 MB · Not permanently stored</p></div></div>
           <label
             className={`dropzone ${dragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
@@ -213,7 +215,7 @@ export default function Home() {
         </div>
       </section>
 
-      {!result && <section className="benefits shell" aria-label="Analysis features"><article><span>01</span><h3>Transparent scoring</h3><p>Every component has a published weight.</p></article><article><span>02</span><h3>Evidence, not guesses</h3><p>Matched keywords link back to resume text.</p></article><article><span>03</span><h3>Grounded rewrites</h3><p>Accept only improvements that remain truthful.</p></article></section>}
+      {!result && <section className="benefits shell" aria-label="Analysis features"><article><span>Score</span><h3>Understand every point</h3><p>Five published components show exactly where the score comes from.</p></article><article><span>Evidence</span><h3>Trace every match</h3><p>Important skills and keywords point back to your own resume text.</p></article><article><span>Control</span><h3>Approve every change</h3><p>Nothing enters your export until you review and accept it.</p></article></section>}
 
       {result && <section className="results shell" id="results">
         <div className="results-head"><div><span className="kicker">Your evidence-backed report</span><h2>{role || result.role_suggestions[0]?.role}</h2><p>{result.role_match.level}</p></div><button className="ghost" onClick={() => setResult(null)}>Analyze another resume</button></div>

@@ -297,15 +297,16 @@ export default function Studio() {
   return (
     <main>
       <nav className="shell nav">
-        <Link className="brand" href="/"><span className="brand-mark">R</span><span>Resume Lens</span></Link>
-        <div className="nav-links"><Link href="/">Analyzer</Link><Link href="/privacy">Privacy</Link></div>
+        <Link className="brand" href="/"><span className="brand-mark">R</span><span>Resume Lens</span><small>Evidence Studio</small></Link>
+        <div className="nav-links"><Link href="/">Resume Analyzer</Link><Link className="nav-primary" href="#passport">Your Passport <span>↓</span></Link><Link href="/privacy">Privacy</Link></div>
       </nav>
 
       <section className="studio-hero shell">
-        <span className="kicker">Evidence Studio</span>
-        <h1>Turn what you built into <em>proof.</em></h1>
-        <p>Most resume tools rewrite words. Resume Lens helps you verify what a project demonstrates, uncover missing evidence, and build an ATS-friendly resume without inventing claims.</p>
+        <span className="kicker">Resume Lens · Evidence Studio</span>
+        <h1>Build a career story<br />recruiters can <em>verify.</em></h1>
+        <p>Turn projects into evidence-linked claims, match them against real vacancies, and publish only the proof you choose.</p>
         <div className="trust-row"><span>✓ Evidence-linked claims</span><span>✓ Private Evidence Passport</span><span>✓ No uploaded resume storage</span></div>
+        <div className="studio-flow" aria-label="Evidence Studio workflow"><span><b>01</b> Capture</span><i /><span><b>02</b> Verify</span><i /><span><b>03</b> Match</span><i /><span><b>04</b> Publish</span></div>
       </section>
 
       <section className="shell evidence-workspace">
@@ -357,7 +358,7 @@ export default function Studio() {
         </section>
       )}
 
-      <section className="shell passport-section">
+      <section className="shell passport-section" id="passport">
         <div className="section-heading"><div><span className="step-number">2</span></div><div><span className="kicker">Evidence Passport</span><h2>Your reusable proof library</h2><p>Saved projects persist privately between sessions. Only this browser holds the key used to retrieve them.</p></div><span className="save-state">{passport.length} projects</span></div>
         {passport.length === 0 ? <div className="passport-empty"><b>No saved evidence yet.</b><p>Analyze a project and select “Save project to Passport.”</p></div> : <>
           <div className="passport-grid">{passport.map((project) => <article className={shareSelected.has(project.id) ? "share-selected" : ""} key={project.id}><label className="share-project"><input type="checkbox" checked={shareSelected.has(project.id)} onChange={() => setShareSelected((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next; })} /> Include in public profile</label><div><span className="claim-status verified">saved evidence</span><h3>{project.title}</h3><p>{project.payload.capability_summary}</p></div><div className="passport-skills">{project.payload.verified_skills.slice(0, 5).map((skill) => <span key={skill.skill}>{skill.skill}</span>)}</div><small className="artifact-count">{project.payload.artifacts?.length || 0} supporting artifacts</small><div className="passport-actions"><button onClick={() => loadPassportProject(project)}>Open & edit</button><button onClick={() => removePassportProject(project.id)}>Remove</button></div></article>)}</div>

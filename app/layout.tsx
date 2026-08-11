@@ -7,14 +7,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "https");
   const origin = `${protocol}://${host}`;
-  const title = "Resume Lens — AI Resume Analyzer";
-  const description = "Compare your resume with a target role and get clear, actionable improvements.";
+  const title = "Resume Lens — Evidence-First Career Intelligence";
+  const description = "Analyze your resume, prove every claim, and build a recruiter-ready evidence profile.";
   return {
     title,
     description,
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-    openGraph: { title, description, images: [{ url: `${origin}/og.png`, width: 1734, height: 907 }] },
-    twitter: { card: "summary_large_image", title, description, images: [`${origin}/og.png`] },
+    openGraph: { title, description, images: [{ url: `${origin}/og-v2.png`, width: 1734, height: 907 }] },
+    twitter: { card: "summary_large_image", title, description, images: [`${origin}/og-v2.png`] },
   };
 }
 

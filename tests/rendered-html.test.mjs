@@ -5,7 +5,9 @@ import test from "node:test";
 test("contains the Resume Lens landing-page workflow", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /Turn your resume into/);
+  assert.match(page, /See what your resume/);
+  assert.match(page, /can actually prove/);
+  assert.match(page, /Evidence-backed career intelligence/);
   assert.match(page, /Upload your resume/);
   assert.match(page, /Target role/);
   assert.match(page, /Analyze my resume/);

@@ -1,0 +1,1 @@
+CREATE INDEX `evidence_projects_passport_key_idx` ON `evidence_projects` (`passport_key`);

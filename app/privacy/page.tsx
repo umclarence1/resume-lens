@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <h2>What is processed</h2>
       <p>Your PDF, target role, and job description are sent to the configured AI provider for analysis. Do not upload information you are not comfortable processing through that provider.</p>
       <h2>Retention</h2>
-      <p>The application does not provide resume history or permanent storage. Request data may still appear temporarily in infrastructure or provider logs according to the hosting provider’s and AI provider’s policies.</p>
+      <p>Uploaded resumes are not saved. Evidence projects are stored only when you explicitly select “Save project to Passport.” A private key kept in your browser retrieves those records; clearing that key may make them unrecoverable. You can remove individual Passport projects from the Studio. Request data may still appear temporarily in infrastructure or provider logs according to their policies.</p>
       <h2>Security controls</h2>
       <p>Uploads are restricted to valid PDF files of 8 MB or less. Requests are rate-limited, and API credentials remain server-side.</p>
       <h2>Your responsibility</h2>

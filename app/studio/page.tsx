@@ -14,6 +14,9 @@ type EvidenceResult = {
   demo?: boolean;
 };
 
+type PassportProject = { id: string; title: string; payload: EvidenceResult & { description?: string; targetRole?: string } };
+type RequirementMatch = { requirement: string; status: "strong" | "partial" | "inferred" | "missing"; evidence: string[]; recommendation: string };
+
 type ResumeData = {
   name: string;
   headline: string;
@@ -50,10 +53,31 @@ export default function Studio() {
   });
   const [template, setTemplate] = useState<"classic" | "modern" | "technical">("modern");
   const [verified, setVerified] = useState(false);
+  const [passportKey] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const existing = localStorage.getItem("resume-lens-passport-key");
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem("resume-lens-passport-key", created);
+    return created;
+  });
+  const [passport, setPassport] = useState<PassportProject[]>([]);
+  const [passportMessage, setPassportMessage] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [matrix, setMatrix] = useState<RequirementMatch[]>([]);
+  const [matching, setMatching] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("resume-lens-studio-v1", JSON.stringify(resume));
   }, [resume]);
+
+  useEffect(() => {
+    if (!passportKey) return;
+    fetch("/api/passport", { headers: { "x-passport-key": passportKey } })
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data) => setPassport(data.projects || []))
+      .catch(() => setPassportMessage("Your passport could not be loaded yet."));
+  }, [passportKey]);
 
   const contact = useMemo(
     () => [resume.email, resume.phone, resume.location, resume.links].filter(Boolean).join(" • "),
@@ -90,6 +114,45 @@ export default function Studio() {
       return { ...current, projects: [...projects, { title: result.project_title, bullets }] };
     });
     document.getElementById("builder")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function saveToPassport() {
+    if (!result || !passportKey) return;
+    setPassportMessage("Saving evidence…");
+    const existing = passport.find((item) => item.title.toLowerCase() === result.project_title.toLowerCase());
+    const response = await fetch("/api/passport", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-passport-key": passportKey },
+      body: JSON.stringify({ id: existing?.id, title: result.project_title, payload: { ...result, description, targetRole, verified_answers: answers } }),
+    });
+    const data = await response.json();
+    if (!response.ok) { setPassportMessage(data.error || "Evidence could not be saved."); return; }
+    setPassport((current) => [{ id: data.id, title: result.project_title, payload: { ...result, description, targetRole } }, ...current.filter((item) => item.id !== data.id)]);
+    setPassportMessage("Saved to your private Evidence Passport.");
+  }
+
+  async function removePassportProject(id: string) {
+    const response = await fetch(`/api/passport?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: { "x-passport-key": passportKey } });
+    if (response.ok) setPassport((current) => current.filter((item) => item.id !== id));
+  }
+
+  async function matchEvidence() {
+    setMatching(true); setError(""); setMatrix([]);
+    try {
+      const projects = [...passport.map((item) => ({ title: item.title, payload: item.payload })), ...(result && !passport.some((item) => item.title.toLowerCase() === result.project_title.toLowerCase()) ? [{ title: result.project_title, payload: result }] : [])];
+      const response = await fetch("/api/evidence-match", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobDescription, projects }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Evidence matching failed.");
+      setMatrix(data.requirements || []);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Evidence matching failed."); }
+    finally { setMatching(false); }
+  }
+
+  function claimStatus(item: EvidenceResult["resume_bullets"][number]) {
+    if (item.needs_verification || item.text.includes("[")) return "incomplete";
+    if (item.evidence_basis.length > 0) return "verified";
+    if (Object.values(answers).some(Boolean)) return "user-confirmed";
+    return "inferred";
   }
 
   function update(field: keyof Omit<ResumeData, "projects">, value: string) {
@@ -165,7 +228,7 @@ export default function Studio() {
         <span className="kicker">Evidence Studio</span>
         <h1>Turn what you built into <em>proof.</em></h1>
         <p>Most resume tools rewrite words. Resume Lens helps you verify what a project demonstrates, uncover missing evidence, and build an ATS-friendly resume without inventing claims.</p>
-        <div className="trust-row"><span>✓ Evidence-linked claims</span><span>✓ Local autosave</span><span>✓ No permanent resume storage</span></div>
+        <div className="trust-row"><span>✓ Evidence-linked claims</span><span>✓ Private Evidence Passport</span><span>✓ No uploaded resume storage</span></div>
       </section>
 
       <section className="shell evidence-workspace">
@@ -202,15 +265,28 @@ export default function Studio() {
           </article>
           <article className="bullet-card">
             <span className="kicker">Truth-grounded bullets</span><h3>Choose what belongs in your resume</h3>
-            {result.resume_bullets.map((item, index) => <label className="bullet-choice" key={`${item.text}-${index}`}><input type="checkbox" checked={selected.has(index)} onChange={() => setSelected((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /><span><b>{item.text}</b><small>{item.needs_verification ? "Needs your verification" : `Supported by: ${item.evidence_basis.join(" · ")}`}</small></span></label>)}
-            <button className="analyze" disabled={selected.size === 0} onClick={addApprovedBullets}>Add approved evidence to resume <span>→</span></button>
+            {result.resume_bullets.map((item, index) => <label className="bullet-choice" key={`${item.text}-${index}`}><input type="checkbox" checked={selected.has(index)} onChange={() => setSelected((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /><span><span className={`claim-status ${claimStatus(item)}`}>{claimStatus(item)}</span><b>{item.text}</b><small>{item.evidence_basis.length ? `Why you can say this: ${item.evidence_basis.join(" · ")}` : "No direct supporting phrase has been identified."}</small></span></label>)}
+            <div className="dual-actions"><button className="analyze" disabled={selected.size === 0} onClick={addApprovedBullets}>Add approved evidence to resume <span>→</span></button><button className="passport-save" onClick={saveToPassport}>Save project to Passport</button></div>
+            {passportMessage && <p className="passport-message">{passportMessage}</p>}
           </article>
           <article className="star-card"><span className="kicker">Interview readiness</span><h3>Your evidence-based STAR story</h3><div>{Object.entries(result.interview_story).map(([key, value]) => <p key={key}><b>{key}</b>{value}</p>)}</div></article>
         </section>
       )}
 
+      <section className="shell passport-section">
+        <div className="section-heading"><div><span className="step-number">2</span></div><div><span className="kicker">Evidence Passport</span><h2>Your reusable proof library</h2><p>Saved projects persist privately between sessions. Only this browser holds the key used to retrieve them.</p></div><span className="save-state">{passport.length} projects</span></div>
+        {passport.length === 0 ? <div className="passport-empty"><b>No saved evidence yet.</b><p>Analyze a project and select “Save project to Passport.”</p></div> : <div className="passport-grid">{passport.map((project) => <article key={project.id}><div><span className="claim-status verified">saved evidence</span><h3>{project.title}</h3><p>{project.payload.capability_summary}</p></div><div className="passport-skills">{project.payload.verified_skills.slice(0, 5).map((skill) => <span key={skill.skill}>{skill.skill}</span>)}</div><button onClick={() => removePassportProject(project.id)}>Remove</button></article>)}</div>}
+      </section>
+
+      <section className="shell matrix-section">
+        <div className="section-heading"><div><span className="step-number">3</span></div><div><span className="kicker">Job Evidence Matrix</span><h2>See what you can actually prove</h2><p>Paste a vacancy to map each important requirement to evidence across your Passport—not just matching keywords.</p></div></div>
+        <label className="wide-label">Job description<textarea value={jobDescription} onChange={(event) => setJobDescription(event.target.value)} placeholder="Paste the responsibilities and requirements from the vacancy…" /></label>
+        <button className="analyze" disabled={matching || jobDescription.length < 80 || (passport.length === 0 && !result)} onClick={matchEvidence}>{matching ? <><i className="spinner" /> Auditing your evidence…</> : <>Build evidence matrix <span>→</span></>}</button>
+        {matrix.length > 0 && <div className="matrix-table"><div className="matrix-head"><span>Job requirement</span><span>Proof strength</span><span>Evidence</span><span>Next action</span></div>{matrix.map((item, index) => <div className="matrix-row" key={`${item.requirement}-${index}`}><b>{item.requirement}</b><span><i className={`matrix-status ${item.status}`}>{item.status}</i></span><span>{item.evidence.length ? item.evidence.join(" · ") : "No supporting evidence found."}</span><span>{item.recommendation}</span></div>)}</div>}
+      </section>
+
       <section className="shell builder-section" id="builder">
-        <div className="section-heading"><div><span className="step-number">2</span></div><div><span className="kicker">Resume Builder</span><h2>Build from verified evidence</h2><p>Your draft autosaves only in this browser. Review every claim before exporting.</p></div><span className="save-state">Saved locally</span></div>
+        <div className="section-heading"><div><span className="step-number">4</span></div><div><span className="kicker">Resume Builder</span><h2>Build from verified evidence</h2><p>Your draft autosaves only in this browser. Review every claim before exporting.</p></div><span className="save-state">Saved locally</span></div>
         <div className="builder-grid">
           <div className="builder-form">
             <div className="studio-form-grid">

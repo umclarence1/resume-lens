@@ -8,6 +8,7 @@ const home = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8")
 const passportApi = await readFile(new URL("../app/api/passport/route.ts", import.meta.url), "utf8");
 const matchApi = await readFile(new URL("../app/api/evidence-match/route.ts", import.meta.url), "utf8");
 const hosting = JSON.parse(await readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"));
+const nextConfig = await readFile(new URL("../next.config.ts", import.meta.url), "utf8");
 
 test("links the analyzer to the Evidence Studio", () => {
   assert.match(home, /href="\/studio"/);
@@ -41,4 +42,11 @@ test("maps job requirements to proof instead of keywords alone", () => {
   assert.match(matchApi, /Never invent evidence/);
   assert.match(studio, /Job Evidence Matrix/);
   assert.match(studio, /Why you can say this/);
+});
+
+test("keeps the Evidence Passport functional on Vercel", () => {
+  assert.match(nextConfig, /process\.env\.VERCEL/);
+  assert.match(nextConfig, /cloudflare-workers-stub/);
+  assert.match(studio, /resume-lens-passport-/);
+  assert.match(studio, /Saved privately on this device/);
 });

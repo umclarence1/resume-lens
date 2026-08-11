@@ -76,7 +76,13 @@ export default function Studio() {
     fetch("/api/passport", { headers: { "x-passport-key": passportKey } })
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((data) => setPassport(data.projects || []))
-      .catch(() => setPassportMessage("Your passport could not be loaded yet."));
+      .catch(() => {
+        const local = localStorage.getItem(`resume-lens-passport-${passportKey}`);
+        if (local) {
+          try { setPassport(JSON.parse(local)); } catch { /* Ignore a damaged device-local backup. */ }
+        }
+        setPassportMessage("This host is keeping your Passport privately on this device.");
+      });
   }, [passportKey]);
 
   const contact = useMemo(
@@ -120,20 +126,35 @@ export default function Studio() {
     if (!result || !passportKey) return;
     setPassportMessage("Saving evidence…");
     const existing = passport.find((item) => item.title.toLowerCase() === result.project_title.toLowerCase());
-    const response = await fetch("/api/passport", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-passport-key": passportKey },
-      body: JSON.stringify({ id: existing?.id, title: result.project_title, payload: { ...result, description, targetRole, verified_answers: answers } }),
-    });
-    const data = await response.json();
-    if (!response.ok) { setPassportMessage(data.error || "Evidence could not be saved."); return; }
-    setPassport((current) => [{ id: data.id, title: result.project_title, payload: { ...result, description, targetRole } }, ...current.filter((item) => item.id !== data.id)]);
-    setPassportMessage("Saved to your private Evidence Passport.");
+    const payload = { ...result, description, targetRole, verified_answers: answers };
+    try {
+      const response = await fetch("/api/passport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-passport-key": passportKey },
+        body: JSON.stringify({ id: existing?.id, title: result.project_title, payload }),
+      });
+      if (!response.ok) throw new Error("Hosted storage unavailable");
+      const data = await response.json();
+      setPassport((current) => [{ id: data.id, title: result.project_title, payload }, ...current.filter((item) => item.id !== data.id)]);
+      setPassportMessage("Saved to your private Evidence Passport.");
+    } catch {
+      const id = existing?.id || crypto.randomUUID();
+      const next = [{ id, title: result.project_title, payload }, ...passport.filter((item) => item.id !== id)];
+      localStorage.setItem(`resume-lens-passport-${passportKey}`, JSON.stringify(next));
+      setPassport(next);
+      setPassportMessage("Saved privately on this device.");
+    }
   }
 
   async function removePassportProject(id: string) {
-    const response = await fetch(`/api/passport?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: { "x-passport-key": passportKey } });
-    if (response.ok) setPassport((current) => current.filter((item) => item.id !== id));
+    const next = passport.filter((item) => item.id !== id);
+    try {
+      const response = await fetch(`/api/passport?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: { "x-passport-key": passportKey } });
+      if (!response.ok) throw new Error("Hosted storage unavailable");
+    } catch {
+      localStorage.setItem(`resume-lens-passport-${passportKey}`, JSON.stringify(next));
+    }
+    setPassport(next);
   }
 
   async function matchEvidence() {

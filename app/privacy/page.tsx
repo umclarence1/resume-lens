@@ -11,6 +11,8 @@ export default function PrivacyPage() {
       <p>Your PDF, target role, and job description are sent to the configured AI provider for analysis. Do not upload information you are not comfortable processing through that provider.</p>
       <h2>Retention</h2>
       <p>Uploaded resumes are not saved. Evidence projects are stored only when you explicitly select “Save project to Passport.” A private key kept in your browser retrieves those records; clearing that key may make them unrecoverable. You can remove individual Passport projects from the Studio. Request data may still appear temporarily in infrastructure or provider logs according to their policies.</p>
+      <h2>Public proof profiles</h2>
+      <p>A proof profile is created only after you select projects and explicitly confirm publication. It exposes selected summaries, skills, claims, source phrases and artifact links to anyone with its URL. Raw project descriptions, verification answers, resume files and contact details are excluded. You can unpublish the active profile from the same browser that created it.</p>
       <h2>Security controls</h2>
       <p>Uploads are restricted to valid PDF files of 8 MB or less. Requests are rate-limited, and API credentials remain server-side.</p>
       <h2>Your responsibility</h2>

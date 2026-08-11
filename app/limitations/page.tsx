@@ -11,6 +11,8 @@ export default function LimitationsPage() {
       <p>Short or vague job descriptions reduce keyword accuracy. Formatting, scanned PDFs, unusual layouts, and incomplete resume details can also affect the analysis.</p>
       <h2>AI can make mistakes</h2>
       <p>Evidence labels and consistency checks reduce unsupported claims, but users must still review every suggestion. Never add a skill, metric, qualification, or responsibility you cannot defend.</p>
+      <h2>Artifacts are candidate-supplied</h2>
+      <p>Resume Lens validates artifact links and their connection to selected claims, but it does not independently certify that a repository, report, certificate, screenshot, or demo is authentic or owned by the candidate.</p>
       <h2>Fair-use boundary</h2>
       <p>Resume Lens does not evaluate protected characteristics and should not be used as an automated hiring decision system.</p>
       <h2>Score calculation</h2>

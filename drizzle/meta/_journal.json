@@ -15,6 +15,13 @@
       "when": 1786486050839,
       "tag": "0001_gigantic_big_bertha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786487436318,
+      "tag": "0002_last_hammerhead",
+      "breakpoints": true
     }
   ]
 }

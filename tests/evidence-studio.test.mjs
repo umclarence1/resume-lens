@@ -7,6 +7,8 @@ const api = await readFile(new URL("../app/api/project-evidence/route.ts", impor
 const home = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 const passportApi = await readFile(new URL("../app/api/passport/route.ts", import.meta.url), "utf8");
 const matchApi = await readFile(new URL("../app/api/evidence-match/route.ts", import.meta.url), "utf8");
+const proofApi = await readFile(new URL("../app/api/proof-profile/route.ts", import.meta.url), "utf8");
+const proofPage = await readFile(new URL("../app/proof/[token]/page.tsx", import.meta.url), "utf8");
 const hosting = JSON.parse(await readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"));
 const nextConfig = await readFile(new URL("../next.config.ts", import.meta.url), "utf8");
 
@@ -49,4 +51,19 @@ test("keeps the Evidence Passport functional on Vercel", () => {
   assert.match(nextConfig, /cloudflare-workers-stub/);
   assert.match(studio, /resume-lens-passport-/);
   assert.match(studio, /Saved privately on this device/);
+});
+
+test("links secure artifacts to individual evidence claims", () => {
+  assert.match(studio, /Artifact Vault/);
+  assert.match(studio, /claimIndexes/);
+  assert.match(studio, /url\.protocol !== "https:"/);
+  assert.match(studio, /Which claims does it support/);
+});
+
+test("publishes a privacy-controlled evidence profile", () => {
+  assert.match(proofApi, /body\?\.consent !== true/);
+  assert.doesNotMatch(proofApi, /verified_answers/);
+  assert.match(proofApi, /publicProject/);
+  assert.match(proofPage, /Trust note/);
+  assert.match(studio, /Raw project descriptions, contact details and verification answers stay private/);
 });

@@ -11,10 +11,12 @@ type EvidenceResult = {
   resume_bullets: { text: string; evidence_basis: string[]; needs_verification: boolean }[];
   interview_story: { situation: string; task: string; action: string; result: string };
   matching_roles: string[];
+  artifacts?: Artifact[];
   demo?: boolean;
 };
 
-type PassportProject = { id: string; title: string; payload: EvidenceResult & { description?: string; targetRole?: string } };
+type Artifact = { id: string; label: string; url: string; type: "github" | "demo" | "report" | "certificate" | "portfolio" | "other"; claimIndexes: number[] };
+type PassportProject = { id: string; title: string; payload: EvidenceResult & { description?: string; targetRole?: string; verified_answers?: Record<string, string> } };
 type RequirementMatch = { requirement: string; status: "strong" | "partial" | "inferred" | "missing"; evidence: string[]; recommendation: string };
 
 type ResumeData = {
@@ -66,6 +68,17 @@ export default function Studio() {
   const [jobDescription, setJobDescription] = useState("");
   const [matrix, setMatrix] = useState<RequirementMatch[]>([]);
   const [matching, setMatching] = useState(false);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [artifactLabel, setArtifactLabel] = useState("");
+  const [artifactUrl, setArtifactUrl] = useState("");
+  const [artifactType, setArtifactType] = useState<Artifact["type"]>("github");
+  const [artifactClaims, setArtifactClaims] = useState<Set<number>>(new Set());
+  const [shareSelected, setShareSelected] = useState<Set<string>>(new Set());
+  const [shareTitle, setShareTitle] = useState("");
+  const [shareConsent, setShareConsent] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareToken, setShareToken] = useState("");
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("resume-lens-studio-v1", JSON.stringify(resume));
@@ -103,6 +116,8 @@ export default function Studio() {
       if (!response.ok) throw new Error(data.error || "Project analysis failed.");
       setResult(data);
       setSelected(new Set(data.resume_bullets.map((_: unknown, index: number) => index)));
+      setArtifactClaims(new Set(data.resume_bullets.map((_: unknown, index: number) => index)));
+      setArtifacts([]);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Project analysis failed.");
     } finally {
@@ -126,7 +141,7 @@ export default function Studio() {
     if (!result || !passportKey) return;
     setPassportMessage("Saving evidence…");
     const existing = passport.find((item) => item.title.toLowerCase() === result.project_title.toLowerCase());
-    const payload = { ...result, description, targetRole, verified_answers: answers };
+    const payload = { ...result, artifacts, description, targetRole, verified_answers: answers };
     try {
       const response = await fetch("/api/passport", {
         method: "POST",
@@ -155,6 +170,47 @@ export default function Studio() {
       localStorage.setItem(`resume-lens-passport-${passportKey}`, JSON.stringify(next));
     }
     setPassport(next);
+    setShareSelected((current) => { const updated = new Set(current); updated.delete(id); return updated; });
+  }
+
+  function addArtifact() {
+    let url: URL;
+    try { url = new URL(artifactUrl); } catch { setPassportMessage("Enter a complete HTTPS artifact link."); return; }
+    if (url.protocol !== "https:" || artifactLabel.trim().length < 2) { setPassportMessage("Add a label and a secure HTTPS link."); return; }
+    setArtifacts((current) => [...current, { id: crypto.randomUUID(), label: artifactLabel.trim(), url: url.toString(), type: artifactType, claimIndexes: [...artifactClaims] }]);
+    setArtifactLabel(""); setArtifactUrl(""); setPassportMessage("Artifact linked to the selected claims.");
+  }
+
+  function loadPassportProject(project: PassportProject) {
+    setResult(project.payload);
+    setProjectTitle(project.title);
+    setDescription(project.payload.description || "");
+    setTargetRole(project.payload.targetRole || "");
+    setAnswers(project.payload.verified_answers || {});
+    setArtifacts(project.payload.artifacts || []);
+    setSelected(new Set(project.payload.resume_bullets.map((_, index) => index)));
+    setArtifactClaims(new Set(project.payload.resume_bullets.map((_, index) => index)));
+    document.querySelector(".evidence-results")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function publishProofProfile() {
+    if (!shareConsent || shareSelected.size === 0) return;
+    setSharing(true); setPassportMessage("Publishing selected evidence…");
+    try {
+      const response = await fetch("/api/proof-profile", { method: "POST", headers: { "Content-Type": "application/json", "x-passport-key": passportKey }, body: JSON.stringify({ title: shareTitle, projectIds: [...shareSelected], consent: true }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Profile could not be published.");
+      setShareToken(data.token);
+      setShareUrl(`${window.location.origin}${data.path}`);
+      setPassportMessage("Your public proof profile is ready.");
+    } catch (reason) { setPassportMessage(reason instanceof Error ? reason.message : "Profile could not be published."); }
+    finally { setSharing(false); }
+  }
+
+  async function unpublishProofProfile() {
+    if (!shareToken) return;
+    const response = await fetch(`/api/proof-profile?token=${encodeURIComponent(shareToken)}`, { method: "DELETE", headers: { "x-passport-key": passportKey } });
+    if (response.ok) { setShareUrl(""); setShareToken(""); setPassportMessage("Public proof profile unpublished."); }
   }
 
   async function matchEvidence() {
@@ -284,9 +340,16 @@ export default function Studio() {
             {result.verification_questions.map((question) => <label key={question.id}>{question.question}<small>{question.why_it_matters}</small><textarea value={answers[question.id] || ""} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} placeholder="Your factual answer…" /></label>)}
             <button className="ghost" onClick={analyzeProject}>Refine using my answers</button>
           </article>
+          <article className="artifact-card">
+            <span className="kicker">Artifact Vault</span><h3>Attach proof to specific claims</h3><p className="artifact-intro">Link a GitHub repository, live demo, project report, certificate or portfolio page. Only secure HTTPS links are accepted.</p>
+            <div className="artifact-form"><label>Artifact type<select value={artifactType} onChange={(event) => setArtifactType(event.target.value as Artifact["type"])}><option value="github">GitHub</option><option value="demo">Live demo</option><option value="report">Project report</option><option value="certificate">Certificate</option><option value="portfolio">Portfolio</option><option value="other">Other</option></select></label><label>Label<input value={artifactLabel} onChange={(event) => setArtifactLabel(event.target.value)} placeholder="Solar monitor source code" /></label><label>Secure URL<input value={artifactUrl} onChange={(event) => setArtifactUrl(event.target.value)} placeholder="https://github.com/…" /></label></div>
+            <div className="claim-linker"><b>Which claims does it support?</b>{result.resume_bullets.map((bullet, index) => <label key={`${bullet.text}-artifact`}><input type="checkbox" checked={artifactClaims.has(index)} onChange={() => setArtifactClaims((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /><span>Claim {index + 1}: {bullet.text}</span></label>)}</div>
+            <button className="ghost" disabled={!artifactLabel || !artifactUrl || artifactClaims.size === 0} onClick={addArtifact}>Link artifact to claims</button>
+            {artifacts.length > 0 && <div className="artifact-list">{artifacts.map((artifact) => <div key={artifact.id}><span>{artifact.type}</span><a href={artifact.url} target="_blank" rel="noreferrer">{artifact.label} ↗</a><small>Supports {artifact.claimIndexes.length} claim{artifact.claimIndexes.length === 1 ? "" : "s"}</small><button onClick={() => setArtifacts((current) => current.filter((item) => item.id !== artifact.id))}>Remove</button></div>)}</div>}
+          </article>
           <article className="bullet-card">
             <span className="kicker">Truth-grounded bullets</span><h3>Choose what belongs in your resume</h3>
-            {result.resume_bullets.map((item, index) => <label className="bullet-choice" key={`${item.text}-${index}`}><input type="checkbox" checked={selected.has(index)} onChange={() => setSelected((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /><span><span className={`claim-status ${claimStatus(item)}`}>{claimStatus(item)}</span><b>{item.text}</b><small>{item.evidence_basis.length ? `Why you can say this: ${item.evidence_basis.join(" · ")}` : "No direct supporting phrase has been identified."}</small></span></label>)}
+            {result.resume_bullets.map((item, index) => <label className="bullet-choice" key={`${item.text}-${index}`}><input type="checkbox" checked={selected.has(index)} onChange={() => setSelected((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} /><span><span className={`claim-status ${claimStatus(item)}`}>{claimStatus(item)}</span><b>{item.text}</b><small>{item.evidence_basis.length ? `Why you can say this: ${item.evidence_basis.join(" · ")}` : "No direct supporting phrase has been identified."}</small>{artifacts.filter((artifact) => artifact.claimIndexes.includes(index)).length > 0 && <span className="linked-proof">{artifacts.filter((artifact) => artifact.claimIndexes.includes(index)).map((artifact) => <a href={artifact.url} target="_blank" rel="noreferrer" key={artifact.id}>{artifact.label} ↗</a>)}</span>}</span></label>)}
             <div className="dual-actions"><button className="analyze" disabled={selected.size === 0} onClick={addApprovedBullets}>Add approved evidence to resume <span>→</span></button><button className="passport-save" onClick={saveToPassport}>Save project to Passport</button></div>
             {passportMessage && <p className="passport-message">{passportMessage}</p>}
           </article>
@@ -296,7 +359,10 @@ export default function Studio() {
 
       <section className="shell passport-section">
         <div className="section-heading"><div><span className="step-number">2</span></div><div><span className="kicker">Evidence Passport</span><h2>Your reusable proof library</h2><p>Saved projects persist privately between sessions. Only this browser holds the key used to retrieve them.</p></div><span className="save-state">{passport.length} projects</span></div>
-        {passport.length === 0 ? <div className="passport-empty"><b>No saved evidence yet.</b><p>Analyze a project and select “Save project to Passport.”</p></div> : <div className="passport-grid">{passport.map((project) => <article key={project.id}><div><span className="claim-status verified">saved evidence</span><h3>{project.title}</h3><p>{project.payload.capability_summary}</p></div><div className="passport-skills">{project.payload.verified_skills.slice(0, 5).map((skill) => <span key={skill.skill}>{skill.skill}</span>)}</div><button onClick={() => removePassportProject(project.id)}>Remove</button></article>)}</div>}
+        {passport.length === 0 ? <div className="passport-empty"><b>No saved evidence yet.</b><p>Analyze a project and select “Save project to Passport.”</p></div> : <>
+          <div className="passport-grid">{passport.map((project) => <article className={shareSelected.has(project.id) ? "share-selected" : ""} key={project.id}><label className="share-project"><input type="checkbox" checked={shareSelected.has(project.id)} onChange={() => setShareSelected((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next; })} /> Include in public profile</label><div><span className="claim-status verified">saved evidence</span><h3>{project.title}</h3><p>{project.payload.capability_summary}</p></div><div className="passport-skills">{project.payload.verified_skills.slice(0, 5).map((skill) => <span key={skill.skill}>{skill.skill}</span>)}</div><small className="artifact-count">{project.payload.artifacts?.length || 0} supporting artifacts</small><div className="passport-actions"><button onClick={() => loadPassportProject(project)}>Open & edit</button><button onClick={() => removePassportProject(project.id)}>Remove</button></div></article>)}</div>
+          <div className="publish-card"><span className="kicker">Shareable proof profile</span><h3>Publish only what you choose</h3><p>Public profiles include selected project summaries, skills, claims and artifact links. Raw project descriptions, contact details and verification answers stay private.</p><label>Profile title<input value={shareTitle} onChange={(event) => setShareTitle(event.target.value)} placeholder="Clarence’s Engineering Evidence Profile" /></label><label className="publish-consent"><input type="checkbox" checked={shareConsent} onChange={(event) => setShareConsent(event.target.checked)} /> I understand that the selected evidence and external links will be publicly accessible to anyone with the URL.</label><button className="analyze" disabled={sharing || !shareConsent || shareSelected.size === 0} onClick={publishProofProfile}>{sharing ? "Publishing…" : `Publish ${shareSelected.size} selected project${shareSelected.size === 1 ? "" : "s"}`}</button>{shareUrl && <div className="share-result"><b>Your public proof link</b><a href={shareUrl} target="_blank" rel="noreferrer">{shareUrl}</a><div><button onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy link</button><button onClick={unpublishProofProfile}>Unpublish</button></div></div>}</div>
+        </>}
       </section>
 
       <section className="shell matrix-section">
